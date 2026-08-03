@@ -13,15 +13,16 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <div class="neon-atmosphere" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="progress" aria-hidden="true"><span id="reading-progress"></span></div>
-  <header class="site-header">
+  <header class="site-header neon-nav">
     <a class="brand" href="#top" aria-label="ClearGlassInc Artemis home">
       <span class="brand-mark" aria-hidden="true"></span>
       <span>ClearGlassInc <b>ARTEMIS</b></span>
     </a>
     <nav aria-label="Article navigation">
       <a href="#architecture">Architecture</a><a href="#governance">Governance</a>
-      <button class="brief-button" id="brief-button" type="button">Mission brief <span>↗</span></button>
+      <button class="brief-button neon-action" id="brief-button" type="button">Mission brief <span>↗</span></button>
     </nav>
   </header>
 
@@ -33,7 +34,7 @@
         <p class="dek">A sovereign blueprint for intelligence that moves at machine speed—without surrendering human judgment, coalition boundaries, or democratic control.</p>
         <div class="hero-meta"><span>12 MIN READ</span><span>STRATEGIC SYSTEMS</span><span>VERSION 2.6</span></div>
       </div>
-      <div class="signal-stage protected protected-watermark reveal" aria-label="Animated Artemis command network visualization">
+      <div class="signal-stage protected protected-watermark reveal neon-hero" aria-label="Animated Artemis command network visualization">
         <canvas id="network-canvas" width="760" height="620"></canvas>
         <div class="stage-label top"><i></i> LIVE ARCHITECTURE</div>
         <div class="stage-label bottom">SOVEREIGN • AUDITED • COALITION-AWARE</div>
@@ -58,20 +59,20 @@
           <blockquote>“Machine speed should compress the distance between evidence and understanding—not the distance between recommendation and accountability.”</blockquote>
         </section>
 
-        <section id="architecture" class="wide-section reveal">
+        <section id="architecture" class="wide-section reveal neon-divider">
           <div class="section-heading"><div><p class="kicker">System architecture</p><h2>Four platforms.<br>One control plane.</h2></div><p>Every layer operates inside the same mission context, policy envelope, provenance chain, and trace.</p></div>
           <div class="platform-grid">
-            <article><span class="number">01</span><span class="status">OPERATIONAL</span><h3>Gotham</h3><p>Investigations, entity tracking, live operational intelligence, and mission decisions.</p><b>SEE &amp; DECIDE →</b></article>
-            <article><span class="number">02</span><span class="status">CONNECTED</span><h3>Foundry</h3><p>Data integration, temporal ontology, governed pipelines, and application logic.</p><b>FUSE &amp; MODEL →</b></article>
-            <article><span class="number">03</span><span class="status">REASONING</span><h3>AIP</h3><p>Bounded copilots, tool-using agents, evaluations, and workflow automation.</p><b>REASON &amp; LEARN →</b></article>
-            <article><span class="number">04</span><span class="status">CONTROLLED</span><h3>Apollo</h3><p>Signed deployment, progressive delivery, runtime control, and instant rollback.</p><b>SHIP &amp; GOVERN →</b></article>
+            <article class="neon-surface"><span class="number">01</span><span class="status">OPERATIONAL</span><h3>Gotham</h3><p>Investigations, entity tracking, live operational intelligence, and mission decisions.</p><b>SEE &amp; DECIDE →</b></article>
+            <article class="neon-surface"><span class="number">02</span><span class="status">CONNECTED</span><h3>Foundry</h3><p>Data integration, temporal ontology, governed pipelines, and application logic.</p><b>FUSE &amp; MODEL →</b></article>
+            <article class="neon-surface"><span class="number">03</span><span class="status">REASONING</span><h3>AIP</h3><p>Bounded copilots, tool-using agents, evaluations, and workflow automation.</p><b>REASON &amp; LEARN →</b></article>
+            <article class="neon-surface"><span class="number">04</span><span class="status">CONTROLLED</span><h3>Apollo</h3><p>Signed deployment, progressive delivery, runtime control, and instant rollback.</p><b>SHIP &amp; GOVERN →</b></article>
           </div>
           <div class="flow protected" aria-label="Architecture data flow">
             <div><small>SOURCES</small><strong>LIVE + HISTORICAL</strong></div><i>→</i><div><small>FOUNDATION</small><strong>ONTOLOGY</strong></div><i>→</i><div><small>INTELLIGENCE</small><strong>AGENTS + TOOLS</strong></div><i>→</i><div><small>DECISION</small><strong>HUMAN CONTROL</strong></div>
           </div>
         </section>
 
-        <section id="intelligence" class="split reveal">
+        <section id="intelligence" class="split reveal neon-divider">
           <div><p class="kicker">AI &amp; agent design</p><h2>Bounded autonomy.<br>Compounding intelligence.</h2><p>Analyst and commander copilots orchestrate specialist agents for triage, enrichment, entity resolution, correlation, challenge, synthesis, and recommendation.</p><p>Agents exchange provenance-bearing artifacts—not hidden conversational memory. Tools use typed contracts, short-lived delegated credentials, classification ceilings, and strict time and cost limits.</p></div>
           <ol class="agent-stack">
             <li><span>01</span><div><b>TRIAGE AGENT</b><small>Classify, prioritize, route</small></div><i>18ms</i></li>
@@ -81,7 +82,7 @@
           </ol>
         </section>
 
-        <section id="improvement" class="loop-section reveal">
+        <section id="improvement" class="loop-section reveal neon-surface neon-surface--contained">
           <p class="kicker">The governed improvement loop</p><h2>Better every mission.<br>Never beyond mandate.</h2>
           <div class="loop-grid">
             <div class="loop-orbit protected" aria-label="Six-stage governed improvement cycle">
@@ -95,7 +96,7 @@
           </div>
         </section>
 
-        <section id="governance" class="prose governance reveal">
+        <section id="governance" class="prose governance reveal neon-divider">
           <p class="kicker">Security &amp; governance</p><h2>Trust is engineered<br>at every boundary.</h2>
           <div class="principles">
             <div><span>01</span><h3>Need to know</h3><p>Entity, row, and property controls combine role, mission, purpose, compartment, nationality, and time.</p></div>
@@ -104,7 +105,7 @@
           </div>
         </section>
 
-        <section id="scenario" class="scenario reveal">
+        <section id="scenario" class="scenario reveal neon-surface neon-surface--dark">
           <div class="scenario-head"><div><p class="kicker">Artemis in motion</p><h2>02:14:07Z</h2></div><p>A coalition observation enters the system. What follows is fast, cinematic—and deliberately controlled.</p></div>
           <div class="timeline">
             <article><time>+ 000ms</time><h3>Signal received</h3><p>Foundry validates the signature, markings, schema, and sequence; raw evidence becomes an immutable observation.</p></article>
@@ -117,9 +118,9 @@
       </article>
     </div>
 
-    <section class="closing reveal">
+    <section class="closing reveal neon-divider">
       <p class="kicker">ClearGlassInc Artemis</p><h2>Sovereign intelligence.<br><em>Human command.</em></h2>
-      <p>Architecture for the decisions that cannot be delegated.</p><a href="mailto:contact@clearglassinc.com">Request a mission brief <span>↗</span></a>
+      <p>Architecture for the decisions that cannot be delegated.</p><a class="neon-action" href="mailto:contact@clearglassinc.com">Request a mission brief <span>↗</span></a>
     </section>
   </main>
   <footer><span>© 2026 CLEARGLASSINC ARTEMIS</span><span>CANADA • SECURE BY DESIGN</span><a href="#top">BACK TO TOP ↑</a></footer>
