@@ -18,6 +18,16 @@ class WebExperienceTest(unittest.TestCase):
         self.assertIn('class="signal-stage protected protected-watermark', page)
         self.assertNotIn('<body class="protected', page)
 
+    def test_neon_system_is_reusable_and_motion_safe(self) -> None:
+        page = (ROOT / "web" / "index.html").read_text()
+        styles = (ROOT / "web" / "styles.css").read_text()
+
+        for utility in ("neon-action", "neon-surface", "neon-divider"):
+            self.assertIn(utility, page)
+            self.assertIn(f".{utility}", styles)
+        self.assertIn("@media(prefers-reduced-motion:reduce)", styles)
+        self.assertIn("pointer-events:none", styles)
+
 
 if __name__ == "__main__":
     unittest.main()
