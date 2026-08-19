@@ -1,0 +1,38 @@
+version: 1
+status: legal-review-required
+purpose_codes:
+  fraud_investigation:
+    family: fraud
+    consent_required: false
+    legal_basis_required: true
+    minimum_level: L2
+  brand_protection:
+    family: brand
+    consent_required: false
+    legal_basis_required: true
+    minimum_level: L2
+  consent_identity_verification:
+    family: consent_identity_verification
+    consent_required: true
+    legal_basis_required: true
+    minimum_level: L2
+  security_operations:
+    family: security
+    consent_required: false
+    legal_basis_required: true
+    minimum_level: L3
+  missing_persons_law_enforcement:
+    family: missing_persons_law_enforcement
+    consent_required: false
+    legal_basis_required: true
+    law_enforcement_documentation_required: true
+    minimum_level: L4
+prohibited:
+  - stalking
+  - harassment
+  - doxxing
+  - unauthorized_surveillance
+  - employment_screening
+  - dating
+  - social_engineering
+  - mass_profiling
