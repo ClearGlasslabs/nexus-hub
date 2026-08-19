@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clearglassinc.example/schemas/artemis-blue-team-report.schema.json",
+  "title": "ARTEMIS BLUE TEAM Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mission_id", "timestamp", "input_sha256", "declared_purpose", "authorization_status", "classification", "risk_level", "findings", "metadata_findings", "publication_actions", "human_review_required", "secret_rotation_required", "retention", "audit"],
+  "properties": {
+    "mission_id": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "input_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "declared_purpose": {"type": "string"},
+    "authorization_status": {"enum": ["AUTHORIZED", "UNCLEAR", "REJECTED"]},
+    "classification": {"enum": ["SAFE_TO_SHARE", "SHARE_AFTER_REDACTION", "INTERNAL_ONLY", "DO_NOT_SHARE"]},
+    "risk_level": {"enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "severity", "location", "observation", "exposure_reason", "recommended_action", "redaction_required"],
+        "properties": {
+          "category": {"enum": ["SECRET", "PII", "BIOMETRIC", "INFRASTRUCTURE", "VULNERABILITY", "BUSINESS_CONFIDENTIAL", "METADATA", "SOCIAL_ENGINEERING"]},
+          "severity": {"enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]},
+          "location": {"type": "string"},
+          "observation": {"type": "string"},
+          "exposure_reason": {"type": "string"},
+          "recommended_action": {"type": "string"},
+          "redaction_required": {"type": "boolean"}
+        }
+      }
+    },
+    "metadata_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "risk", "action"],
+        "properties": {
+          "field": {"type": "string"},
+          "risk": {"type": "string"},
+          "action": {"enum": ["REMOVE", "RETAIN_WITH_AUTHORIZATION"]}
+        }
+      }
+    },
+    "publication_actions": {"type": "array", "items": {"type": "string"}},
+    "human_review_required": {"type": "boolean"},
+    "secret_rotation_required": {"type": "boolean"},
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original_image", "temporary_derivatives", "report_retention_days"],
+      "properties": {
+        "original_image": {"const": "DELETE_AFTER_PROCESSING"},
+        "temporary_derivatives": {"const": "DELETE_AFTER_PROCESSING"},
+        "report_retention_days": {"type": "integer", "minimum": 1, "maximum": 30}
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audit_id", "stored_data"],
+      "properties": {
+        "audit_id": {"type": "string", "minLength": 1},
+        "stored_data": {"const": "HASH_AND_MINIMIZED_REPORT_ONLY"}
+      }
+    }
+  }
+}
