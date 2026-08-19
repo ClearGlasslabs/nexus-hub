@@ -29,7 +29,7 @@ services:
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    networks: [private]
+    networks: [private, egress]
     ports:
       - "127.0.0.1:8080:8080"
 
@@ -39,3 +39,5 @@ volumes:
 networks:
   private:
     internal: true
+  egress:
+    driver: bridge
