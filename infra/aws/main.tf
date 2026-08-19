@@ -11,11 +11,9 @@ terraform {
 variable "aws_region" { type = string default = "ca-central-1" }
 variable "bucket_name" { type = string }
 variable "vpc_id" { type = string }
-variable "private_subnet_ids" { type = list(string) }
+variable "private_route_table_ids" { type = list(string) }
 
 provider "aws" { region = var.aws_region }
-
-data "aws_caller_identity" "current" {}
 
 resource "aws_kms_key" "nexus" {
   description             = "Nexus V12 query-object encryption"
@@ -80,10 +78,10 @@ resource "aws_s3_bucket_policy" "queries" {
 }
 
 resource "aws_vpc_endpoint" "s3" {
-  vpc_id       = var.vpc_id
-  service_name = "com.amazonaws.${var.aws_region}.s3"
+  vpc_id            = var.vpc_id
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids = []
+  route_table_ids   = var.private_route_table_ids
 }
 
 output "kms_key_arn" { value = aws_kms_key.nexus.arn }
