@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import ipaddress
 import os
+import time
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from artemis_blue_team.scanner import ArtemisScanner, ScanRequest, json_report
+from .audit import new_event
 from .audit_store import PostgresAuditStore
 from .oidc import OIDCVerifier
 from .policy import AuthorizationLevel, QueryAuthorization
@@ -14,10 +17,11 @@ from .provider_http import VettedHttpProvider
 from .rate_limit import AnomalyLimiter
 from .service import NexusV12
 
-app = FastAPI(title="Nexus V12", version="12.1.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="Nexus V12", version="12.2.0", docs_url=None, redoc_url=None)
 bearer = HTTPBearer(auto_error=True)
 verifier = OIDCVerifier()
 limiter = AnomalyLimiter()
+artemis = ArtemisScanner()
 
 
 def _providers() -> list[VettedHttpProvider]:
@@ -112,3 +116,53 @@ async def reverse_image(
         "retention_expiry": report.retention_expiry,
         "audit_event_hash": report.audit_event_hash,
     }
+
+
+@app.post("/v1/artemis/inspect-image")
+async def artemis_inspect_image(
+    request: Request,
+    image: UploadFile = File(...),
+    purpose: str = Form(...),
+    authorization_status: str = Form(...),
+    ocr_text: str = Form(default=""),
+    user_id: str = Depends(require_identity),
+) -> dict:
+    """Inspect an image locally and return only the minimized ARTEMIS report."""
+    if authorization_status not in {"AUTHORIZED", "UNCLEAR", "REJECTED"}:
+        raise HTTPException(status_code=400, detail="authorization_status must be AUTHORIZED, UNCLEAR, or REJECTED")
+    if not purpose.strip():
+        raise HTTPException(status_code=400, detail="declared purpose is required")
+
+    max_bytes = int(os.getenv("NEXUS_MAX_IMAGE_BYTES", "10485760"))
+    raw = await image.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise HTTPException(status_code=413, detail="image exceeds configured byte limit")
+
+    # No external OCR, image search, face identification, or enrichment is performed here.
+    report = artemis.scan(
+        raw,
+        ScanRequest(
+            declared_purpose=purpose.strip(),
+            authorization_status=authorization_status,
+            requesting_user="minimized",
+            authorization_level="L2",
+        ),
+        ocr_text=ocr_text,
+    )
+
+    retention_expiry = int(time.time()) + (artemis.report_retention_days * 86400)
+    audit_event = new_event(
+        user_id=user_id,
+        purpose_code=purpose.strip(),
+        query_hash=report["input_sha256"],
+        sources=("artemis-local",),
+        retention_expiry=retention_expiry,
+        action="image_information_inspection",
+    )
+    # Persist only the minimized audit event; the image and OCR text are never written by this endpoint.
+    store = _audit_store()
+    from .audit import AuditChain
+    audit_hash = AuditChain().append(audit_event)
+    store.append(audit_event, audit_hash)
+
+    return json_report(report)
