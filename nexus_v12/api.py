@@ -1,90 +1,111 @@
-"""Optional FastAPI gateway enforcing network, token, and rate-limit controls.
+"""Production-oriented FastAPI gateway for Nexus V12.
 
-The application intentionally has no default search provider. Operators must
-inject an approved provider and configure OIDC/JWKS, trusted IPs, and storage
-outside the repository. No secrets belong in source control.
+The endpoint fails closed unless trusted-network, OIDC/JWKS and durable audit
+configuration are present. No token, raw image, EXIF, or PII is logged.
 """
 from __future__ import annotations
 
 import ipaddress
 import os
-import time
-from collections import defaultdict, deque
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from .audit_store import PostgresAuditStore
+from .oidc import OIDCVerifier
 from .policy import AuthorizationLevel, QueryAuthorization
+from .rate_limit import AnomalyLimiter
 from .service import NexusV12
 
-app = FastAPI(title="Nexus V12", version="12.0.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="Nexus V12", version="12.1.0", docs_url=None, redoc_url=None)
 bearer = HTTPBearer(auto_error=True)
-_windows: dict[str, deque[float]] = defaultdict(deque)
+verifier = OIDCVerifier()
+limiter = AnomalyLimiter()
+engine = NexusV12(providers=[])
 
 
 def _allowed_ip(host: str) -> bool:
     configured = [x.strip() for x in os.getenv("NEXUS_TRUSTED_CIDRS", "").split(",") if x.strip()]
     if not configured:
         return False
-    address = ipaddress.ip_address(host)
-    return any(address in ipaddress.ip_network(c, strict=False) for c in configured)
+    try:
+        address = ipaddress.ip_address(host)
+        return any(address in ipaddress.ip_network(c, strict=False) for c in configured)
+    except ValueError:
+        return False
 
 
-def _rate_limit(identity: str) -> None:
-    now = time.monotonic()
-    q = _windows[identity]
-    while q and now - q[0] > 60:
-        q.popleft()
-    limit = int(os.getenv("NEXUS_RATE_LIMIT_PER_MINUTE", "30"))
-    if len(q) >= limit:
-        raise HTTPException(status_code=429, detail="rate limit exceeded")
-    q.append(now)
-
-
-def require_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
-    """Fail closed; production deployments should validate JWTs with an OIDC JWKS verifier."""
+def require_identity(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+) -> str:
     client = request.client.host if request.client else ""
     if not _allowed_ip(client):
         raise HTTPException(status_code=403, detail="source network is not allowlisted")
-    if credentials.scheme.lower() != "bearer" or not credentials.credentials:
+    if credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="bearer token required")
-    # Token verification belongs at the deployment boundary or an injected
-    # OIDC middleware. Never accept a caller-supplied user id as authentication.
-    identity = os.getenv("NEXUS_AUTH_VERIFIED_SUB")
-    if not identity:
-        raise HTTPException(status_code=503, detail="OIDC verifier is not configured")
-    _rate_limit(identity)
-    return identity
+    try:
+        identity = verifier.verify(credentials.credentials)
+        limiter.check(identity.subject)
+        return identity.subject
+    except PermissionError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except Exception as exc:
+        # Do not expose token-validation details to callers.
+        raise HTTPException(status_code=401, detail="invalid access token") from exc
 
 
-# Provider wiring is deliberately explicit. A deployment must set this before
-# enabling the endpoint; an empty provider list is safe but non-functional.
-engine = NexusV12(providers=[])
+def _audit_store() -> PostgresAuditStore:
+    try:
+        return PostgresAuditStore()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="durable audit store is not configured") from exc
 
 
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
-    return {"status": "ok", "module": "nexus-v12"}
+    return {"status": "ok", "module": "nexus-v12", "mode": "fail-closed"}
 
 
 @app.post("/v1/reverse-image")
 async def reverse_image(
     request: Request,
     image: UploadFile = File(...),
-    user_id: str = Depends(require_token),
+    user_id: str = Depends(require_identity),
 ) -> dict:
+    max_bytes = int(os.getenv("NEXUS_MAX_IMAGE_BYTES", "10485760"))
+    raw = await image.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise HTTPException(status_code=413, detail="image exceeds configured byte limit")
+
     purpose = request.headers.get("x-purpose-code", "")
     legal_basis = request.headers.get("x-legal-basis", "")
     consent = request.headers.get("x-consent-confirmed", "false").lower() == "true"
+    law_doc = request.headers.get("x-law-enforcement-documented", "false").lower() == "true"
     authorization = QueryAuthorization(
         user_id=user_id,
         level=AuthorizationLevel.L2,
         purpose_code=purpose,
         legal_basis=legal_basis,
         consent_confirmed=consent,
+        law_enforcement_documented=law_doc,
     )
-    raw = await image.read()
-    report = engine.search(raw, authorization)
+    try:
+        report = engine.search(raw, authorization)
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    store = _audit_store()
+    # Persist only minimized audit metadata; the in-memory chain hash links the event.
+    from .audit import new_event
+    event = new_event(
+        user_id=user_id,
+        purpose_code=report.purpose_code,
+        query_hash=report.query_hash,
+        sources=tuple(m.source for m in report.matches),
+        retention_expiry=report.retention_expiry,
+    )
+    store.append(event, report.audit_event_hash)
     return {
         "query_hash": report.query_hash,
         "timestamp": report.timestamp,
