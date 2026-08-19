@@ -29,3 +29,6 @@ DROP TRIGGER IF EXISTS nexus_audit_no_update_delete ON nexus_audit_events;
 CREATE TRIGGER nexus_audit_no_update_delete
 BEFORE UPDATE OR DELETE ON nexus_audit_events
 FOR EACH ROW EXECUTE FUNCTION nexus_audit_immutable();
+
+-- Cleanup runs with a dedicated role granted DELETE on nexus_query_objects only.
+-- The audit table remains immutable for every application role.
