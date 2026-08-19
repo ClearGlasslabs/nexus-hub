@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r nexus_v12/requirements.txt pytest
-      - run: python -m compileall nexus_v12
+      - run: python -m compileall nexus_v12 artemis_blue_team tests
       - run: pytest -q
 
   terraform:
