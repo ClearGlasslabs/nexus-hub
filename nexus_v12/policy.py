@@ -13,24 +13,17 @@ class AuthorizationLevel(IntEnum):
     L3 = 3
     L4 = 4
 
-
 AUTHORIZED_PURPOSES = {
-    "fraud_prevention",
-    "brand_protection",
+    "fraud",
+    "brand",
     "consent_identity_verification",
-    "security_operations",
+    "security",
     "missing_persons_law_enforcement",
 }
 
 PROHIBITED_PURPOSES = {
-    "stalking",
-    "harassment",
-    "doxxing",
-    "unauthorized_surveillance",
-    "employment_screening",
-    "dating",
-    "social_engineering",
-    "mass_profiling",
+    "stalking", "harassment", "doxxing", "unauthorized_surveillance",
+    "employment_screening", "dating", "social_engineering", "mass_profiling",
 }
 
 
@@ -45,7 +38,6 @@ class QueryAuthorization:
 
 
 def validate_authorization(auth: QueryAuthorization) -> None:
-    """Raise ValueError unless the query satisfies the fail-closed policy."""
     if not auth.user_id.strip():
         raise ValueError("user_id is required")
     if auth.level < AuthorizationLevel.L1:
@@ -66,7 +58,6 @@ def validate_authorization(auth: QueryAuthorization) -> None:
 
 
 def retention_expiry(now_epoch: int, authorized_days: int | None = None) -> int:
-    """Return a maximum seven-day expiry unless a shorter period is requested."""
     days = 7 if authorized_days is None else authorized_days
     if days < 1 or days > 7:
         raise ValueError("retention must be between 1 and 7 days")
