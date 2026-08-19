@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - nexus_pg:/var/lib/postgresql/data
+      - ./infra/postgres/audit.sql:/docker-entrypoint-initdb.d/001-audit.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [private]
+
+  nexus-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.nexus
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [private, egress]
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  nexus_pg:
+
+networks:
+  private:
+    internal: true
+  egress:
+    driver: bridge

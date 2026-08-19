@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Protocol
 import time
 
-from .audit import AuditChain, new_event
+from .audit import AuditChain, AuditEvent, new_event
 from .crypto import query_digest, sanitize_image
 from .policy import QueryAuthorization, retention_expiry, validate_authorization
 
@@ -36,6 +36,7 @@ class SearchReport:
     risk: str
     retention_expiry: int
     audit_event_hash: str
+    audit_event: AuditEvent
 
 
 class NexusV12:
@@ -70,9 +71,8 @@ class NexusV12:
             )
             event_hash = self.audit.append(event)
             return SearchReport(query_hash, event.timestamp, auth.purpose_code,
-                                tuple(matches), risk, expiry, event_hash)
+                                tuple(matches), risk, expiry, event_hash, event)
         finally:
-            # Salt is query-scoped and never returned or persisted.
             del salt
             del sanitized
 
