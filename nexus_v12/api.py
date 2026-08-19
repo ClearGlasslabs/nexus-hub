@@ -8,7 +8,7 @@ import time
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from artemis_blue_team.scanner import ArtemisScanner, ScanRequest, json_report
+from artemis_blue_team.scanner import ArtemisScanner, ScanRequest
 from .audit import new_event
 from .audit_store import PostgresAuditStore
 from .oidc import OIDCVerifier
@@ -120,7 +120,6 @@ async def reverse_image(
 
 @app.post("/v1/artemis/inspect-image")
 async def artemis_inspect_image(
-    request: Request,
     image: UploadFile = File(...),
     purpose: str = Form(...),
     authorization_status: str = Form(...),
@@ -161,8 +160,10 @@ async def artemis_inspect_image(
     )
     # Persist only the minimized audit event; the image and OCR text are never written by this endpoint.
     store = _audit_store()
-    from .audit import AuditChain
-    audit_hash = AuditChain().append(audit_event)
+    import hashlib
+    import json
+    audit_payload = json.dumps(audit_event.__dict__, sort_keys=True, separators=(",", ":")).encode()
+    audit_hash = hashlib.sha256(audit_payload).hexdigest()
     store.append(audit_event, audit_hash)
-
-    return json_report(report)
+    report["audit"]["audit_id"] = audit_hash
+    return report
