@@ -1,8 +1,4 @@
-"""Production-oriented FastAPI gateway for Nexus V12.
-
-The endpoint fails closed unless trusted-network, OIDC/JWKS and durable audit
-configuration are present. No token, raw image, EXIF, or PII is logged.
-"""
+"""Production-oriented FastAPI gateway for Nexus V12."""
 from __future__ import annotations
 
 import ipaddress
@@ -14,6 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from .audit_store import PostgresAuditStore
 from .oidc import OIDCVerifier
 from .policy import AuthorizationLevel, QueryAuthorization
+from .provider_http import VettedHttpProvider
 from .rate_limit import AnomalyLimiter
 from .service import NexusV12
 
@@ -21,7 +18,15 @@ app = FastAPI(title="Nexus V12", version="12.1.0", docs_url=None, redoc_url=None
 bearer = HTTPBearer(auto_error=True)
 verifier = OIDCVerifier()
 limiter = AnomalyLimiter()
-engine = NexusV12(providers=[])
+
+
+def _providers() -> list[VettedHttpProvider]:
+    if os.getenv("NEXUS_PROVIDER_URL"):
+        try:
+            return [VettedHttpProvider()]
+        except ValueError as exc:
+            raise RuntimeError("configured provider failed security validation") from exc
+    return []
 
 
 def _allowed_ip(host: str) -> bool:
@@ -90,9 +95,12 @@ async def reverse_image(
         law_enforcement_documented=law_doc,
     )
     try:
+        engine = NexusV12(providers=_providers())
         report = engine.search(raw, authorization)
     except (ValueError, PermissionError) as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     _audit_store().append(report.audit_event, report.audit_event_hash)
     return {
