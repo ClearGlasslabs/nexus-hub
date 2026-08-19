@@ -51,7 +51,6 @@ def require_identity(
     except PermissionError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except Exception as exc:
-        # Do not expose token-validation details to callers.
         raise HTTPException(status_code=401, detail="invalid access token") from exc
 
 
@@ -95,17 +94,7 @@ async def reverse_image(
     except (ValueError, PermissionError) as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
-    store = _audit_store()
-    # Persist only minimized audit metadata; the in-memory chain hash links the event.
-    from .audit import new_event
-    event = new_event(
-        user_id=user_id,
-        purpose_code=report.purpose_code,
-        query_hash=report.query_hash,
-        sources=tuple(m.source for m in report.matches),
-        retention_expiry=report.retention_expiry,
-    )
-    store.append(event, report.audit_event_hash)
+    _audit_store().append(report.audit_event, report.audit_event_hash)
     return {
         "query_hash": report.query_hash,
         "timestamp": report.timestamp,
